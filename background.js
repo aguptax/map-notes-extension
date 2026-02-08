@@ -5,16 +5,23 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-// Read OAuth config from manifest.json
+// Read scopes from manifest.json (these don't change)
 const manifest = chrome.runtime.getManifest();
-const CLIENT_ID = manifest.oauth2?.client_id || "";
 const SCOPES = (manifest.oauth2?.scopes || []).join(" ");
 
+// Get Client ID from storage (saved via Setup Guide UI)
+async function getClientId() {
+  const stored = await chrome.storage.local.get("oauth_client_id");
+  return stored.oauth_client_id || "";
+}
+
 // Build Google OAuth URL for implicit grant flow
-function buildAuthUrl() {
+async function buildAuthUrl() {
+  const clientId = await getClientId();
+  if (!clientId) throw new Error("Client ID not configured. Open the Setup Guide to add it.");
   const redirectUrl = chrome.identity.getRedirectURL();
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
+    client_id: clientId,
     redirect_uri: redirectUrl,
     response_type: "token",
     scope: SCOPES,
@@ -34,10 +41,11 @@ function parseToken(responseUrl) {
 }
 
 // Launch OAuth flow via launchWebAuthFlow (works in Chrome + Edge)
-function launchAuth(interactive) {
+async function launchAuth(interactive) {
+  const url = await buildAuthUrl();
   return new Promise((resolve, reject) => {
     chrome.identity.launchWebAuthFlow(
-      { url: buildAuthUrl(), interactive },
+      { url, interactive },
       (responseUrl) => {
         if (chrome.runtime.lastError || !responseUrl) {
           reject(new Error(chrome.runtime.lastError?.message || "Auth failed"));
