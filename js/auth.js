@@ -2,11 +2,18 @@
 // which uses chrome.identity.launchWebAuthFlow (works in Chrome + Edge)
 
 const Auth = {
+  // Read Client ID from storage to pass to background worker
+  async _getClientId() {
+    const stored = await chrome.storage.local.get("oauth_client_id");
+    return stored.oauth_client_id || undefined;
+  },
+
   // Get auth token (interactive = show login prompt if needed)
   async getToken(interactive = false) {
+    const clientId = await this._getClientId();
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
-        { type: "GET_TOKEN", interactive },
+        { type: "GET_TOKEN", interactive, clientId },
         (response) => {
           if (response?.error) reject(new Error(response.error));
           else resolve(response?.token || null);
@@ -17,8 +24,9 @@ const Auth = {
 
   // Sign in (always shows Google login prompt)
   async signIn() {
+    const clientId = await this._getClientId();
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: "SIGN_IN" }, (response) => {
+      chrome.runtime.sendMessage({ type: "SIGN_IN", clientId }, (response) => {
         if (response?.error) reject(new Error(response.error));
         else resolve(response?.token);
       });

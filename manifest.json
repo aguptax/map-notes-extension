@@ -2,14 +2,21 @@
   "manifest_version": 3,
   "name": "MapNotes - Mark & Annotate Places",
   "version": "1.0.0",
-  "description": "Mark places on a map, add notes and attachments. All data stored in your Google Drive.",
+  "description": "Mark places on a map, add notes and attachments. Works offline with optional Google Drive sync.",
   "permissions": ["identity", "storage"],
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "https://mt1.google.com/*",
+    "https://nominatim.openstreetmap.org/*",
+    "https://places.googleapis.com/*"
+  ],
   "oauth2": {
     "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/drive.file",
       "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/userinfo.email"
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/cloud-platform"
     ]
   },
   "background": {

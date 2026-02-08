@@ -16,9 +16,12 @@ async function getClientId() {
 }
 
 // Build Google OAuth URL for implicit grant flow
-async function buildAuthUrl() {
-  const clientId = await getClientId();
-  if (!clientId) throw new Error("Client ID not configured. Open the Setup Guide to add it.");
+async function buildAuthUrl(overrideClientId) {
+  const clientId = overrideClientId || (await getClientId());
+  console.log("[MapNotes] buildAuthUrl using clientId:", clientId?.substring(0, 20) + "...");
+  if (!clientId || clientId.includes("YOUR_CLIENT_ID")) {
+    throw new Error("Client ID not configured. Open the Setup Guide to add it.");
+  }
   const redirectUrl = chrome.identity.getRedirectURL();
   const params = new URLSearchParams({
     client_id: clientId,
@@ -42,8 +45,8 @@ function parseToken(responseUrl) {
 }
 
 // Launch OAuth flow via launchWebAuthFlow (works in Chrome + Edge)
-async function launchAuth(interactive) {
-  const url = await buildAuthUrl();
+async function launchAuth(interactive, overrideClientId) {
+  const url = await buildAuthUrl(overrideClientId);
   return new Promise((resolve, reject) => {
     chrome.identity.launchWebAuthFlow(
       { url, interactive },
@@ -78,6 +81,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Get token: check storage first, then try silent re-auth
   if (message.type === "GET_TOKEN") {
+    const cid = message.clientId;
     chrome.storage.local.get(["access_token", "token_expiry"]).then(async (stored) => {
       // Return cached token if still valid
       if (stored.access_token && stored.token_expiry > Date.now()) {
@@ -86,7 +90,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       // Try silent (non-interactive) re-auth
       try {
-        const token = await launchAuth(false);
+        const token = await launchAuth(false, cid);
         sendResponse({ token });
         return;
       } catch {
@@ -95,7 +99,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // If caller wants interactive, launch full auth
       if (message.interactive) {
         try {
-          const token = await launchAuth(true);
+          const token = await launchAuth(true, cid);
           sendResponse({ token });
         } catch (err) {
           sendResponse({ error: err.message });
@@ -109,7 +113,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Sign in: always interactive
   if (message.type === "SIGN_IN") {
-    launchAuth(true)
+    launchAuth(true, message.clientId)
       .then((token) => sendResponse({ token }))
       .catch((err) => sendResponse({ error: err.message }));
     return true;
