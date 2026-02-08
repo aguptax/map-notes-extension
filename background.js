@@ -25,6 +25,7 @@ async function buildAuthUrl() {
     redirect_uri: redirectUrl,
     response_type: "token",
     scope: SCOPES,
+    prompt: "select_account",
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }

@@ -1,11 +1,11 @@
-const loginView = document.getElementById("login-view");
-const mainView = document.getElementById("main-view");
+const disconnectedEl = document.getElementById("drive-disconnected");
+const connectedEl = document.getElementById("drive-connected");
 
-async function showView() {
+async function showDriveStatus() {
   const signedIn = await Auth.isSignedIn();
   if (signedIn) {
-    loginView.classList.remove("active");
-    mainView.classList.add("active");
+    disconnectedEl.style.display = "none";
+    connectedEl.style.display = "block";
     const user = await Auth.getUserInfo();
     if (user) {
       document.getElementById("user-avatar").src = user.picture || "";
@@ -13,39 +13,38 @@ async function showView() {
       document.getElementById("user-email").textContent = user.email || "";
     }
   } else {
-    loginView.classList.add("active");
-    mainView.classList.remove("active");
+    disconnectedEl.style.display = "block";
+    connectedEl.style.display = "none";
   }
 }
 
-document.getElementById("sign-in-btn").addEventListener("click", async () => {
-  try {
-    await Auth.signIn();
-    await showView();
-  } catch (err) {
-    console.error("Sign in failed:", err);
-  }
-});
-
+// Open Map — always works
 document.getElementById("open-map-btn").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "OPEN_MAP" });
   window.close();
 });
 
-document.getElementById("sign-out-btn").addEventListener("click", async () => {
-  await Auth.signOut();
-  await showView();
+// Connect Google Drive
+document.getElementById("sign-in-btn").addEventListener("click", async () => {
+  try {
+    await Auth.signIn();
+    await showDriveStatus();
+  } catch (err) {
+    console.error("Sign in failed:", err);
+  }
 });
 
-// Setup guide links
-document.getElementById("setup-link-login").addEventListener("click", () => {
-  chrome.runtime.sendMessage({ type: "OPEN_SETUP" });
-  window.close();
+// Disconnect Drive
+document.getElementById("sign-out-btn").addEventListener("click", async () => {
+  await Auth.signOut();
+  await showDriveStatus();
 });
-document.getElementById("setup-link-main").addEventListener("click", () => {
+
+// Setup Guide
+document.getElementById("setup-link").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "OPEN_SETUP" });
   window.close();
 });
 
 // Init
-showView();
+showDriveStatus();

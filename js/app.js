@@ -1,24 +1,66 @@
-// Main map application logic
+// Main map application logic — local-first, optional Drive sync
 
 let map;
 let markers = {};
 let data = { version: 1, places: [] };
 let selectedPlaceId = null;
 let saving = false;
+let driveConnected = false;
+
+// --- Local Storage ---
+async function loadLocal() {
+  const stored = await chrome.storage.local.get("mapnotes_data");
+  if (stored.mapnotes_data) {
+    return stored.mapnotes_data;
+  }
+  return { version: 1, places: [] };
+}
+
+async function saveLocal(d) {
+  await chrome.storage.local.set({ mapnotes_data: d });
+}
 
 // --- Init ---
 async function init() {
-  const signedIn = await Auth.isSignedIn();
-  if (!signedIn) {
-    showToast("Please sign in from the extension popup first.");
-    return;
+  initMap();
+
+  // Always load from local storage first
+  data = await loadLocal();
+
+  // Check if Drive is connected, try to sync
+  driveConnected = await Auth.isSignedIn();
+  if (driveConnected) {
+    try {
+      const driveData = await Drive.loadData();
+      if (driveData.places && driveData.places.length > 0) {
+        // If Drive has data and local is empty, use Drive data
+        if (data.places.length === 0) {
+          data = driveData;
+          await saveLocal(data);
+        }
+        // If both have data, Drive takes precedence (it's the sync source)
+        else {
+          data = driveData;
+          await saveLocal(data);
+        }
+      } else if (data.places.length > 0) {
+        // Local has data but Drive is empty — push local to Drive
+        await Drive.saveData(data);
+      }
+      showToast("Synced with Google Drive");
+    } catch (err) {
+      console.error("Drive sync failed, using local data:", err);
+      showToast("Using local data (Drive sync failed)");
+    }
   }
 
-  initMap();
-  await loadFromDrive();
   renderPlaceList();
   renderAllMarkers();
-  showToast("Data loaded from Google Drive");
+  updateDriveBanner();
+
+  if (!driveConnected && data.places.length === 0) {
+    showToast("Click anywhere on the map to add a place!");
+  }
 }
 
 // --- Map Setup ---
@@ -41,21 +83,16 @@ function initMap() {
 }
 
 // --- Data operations ---
-async function loadFromDrive() {
-  try {
-    data = await Drive.loadData();
-    if (!data.places) data.places = [];
-  } catch (err) {
-    console.error("Failed to load data:", err);
-    data = { version: 1, places: [] };
-  }
-}
-
-async function saveToDrive() {
+async function saveData() {
   if (saving) return;
   saving = true;
   try {
-    await Drive.saveData(data);
+    // Always save locally
+    await saveLocal(data);
+    // Sync to Drive if connected
+    if (driveConnected) {
+      await Drive.saveData(data);
+    }
   } catch (err) {
     console.error("Failed to save:", err);
     showToast("Save failed — check connection");
@@ -83,17 +120,19 @@ function addNewPlace(lat, lng) {
   renderPlaceList();
   addMarker(place);
   openPlaceDetail(place.id);
-  saveToDrive();
+  saveData();
 }
 
 function deletePlace(id) {
   const place = data.places.find((p) => p.id === id);
   if (!place) return;
 
-  // Delete attachments from Drive
-  place.attachments.forEach((att) => {
-    Drive.deleteAttachment(att.driveId).catch(() => {});
-  });
+  // Delete attachments from Drive if connected
+  if (driveConnected) {
+    place.attachments.forEach((att) => {
+      if (att.driveId) Drive.deleteAttachment(att.driveId).catch(() => {});
+    });
+  }
 
   // Remove from data
   data.places = data.places.filter((p) => p.id !== id);
@@ -106,7 +145,7 @@ function deletePlace(id) {
 
   closePlaceDetail();
   renderPlaceList();
-  saveToDrive();
+  saveData();
   showToast("Place deleted");
 }
 
@@ -147,7 +186,7 @@ function addMarker(place) {
       document.getElementById("place-coords").textContent =
         `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
     }
-    saveToDrive();
+    saveData();
   });
 
   marker.addTo(map);
@@ -158,6 +197,17 @@ function renderAllMarkers() {
   Object.values(markers).forEach((m) => map.removeLayer(m));
   markers = {};
   data.places.forEach((place) => addMarker(place));
+}
+
+// --- Drive Banner ---
+function updateDriveBanner() {
+  const banner = document.getElementById("drive-banner");
+  if (!banner) return;
+  if (driveConnected) {
+    banner.style.display = "none";
+  } else {
+    banner.style.display = "flex";
+  }
 }
 
 // --- Sidebar: Place List ---
@@ -222,6 +272,12 @@ function openPlaceDetail(id) {
   });
 
   renderAttachments(place);
+
+  // Show/hide upload button based on Drive connection
+  const uploadBtn = document.getElementById("upload-btn");
+  const attachHint = document.getElementById("attach-hint");
+  if (uploadBtn) uploadBtn.style.display = driveConnected ? "inline-block" : "none";
+  if (attachHint) attachHint.style.display = driveConnected ? "none" : "block";
 }
 
 function closePlaceDetail() {
@@ -255,12 +311,12 @@ function renderAttachments(place) {
     btn.addEventListener("click", async () => {
       const idx = parseInt(btn.dataset.index);
       const att = place.attachments[idx];
-      if (att.driveId) {
+      if (att.driveId && driveConnected) {
         await Drive.deleteAttachment(att.driveId).catch(() => {});
       }
       place.attachments.splice(idx, 1);
       renderAttachments(place);
-      saveToDrive();
+      saveData();
       showToast("Attachment deleted");
     });
   });
@@ -297,7 +353,7 @@ document.getElementById("save-place-btn").addEventListener("click", () => {
   // Update marker
   addMarker(place);
   renderPlaceList();
-  saveToDrive();
+  saveData();
   showToast("Place saved!");
 });
 
@@ -308,8 +364,12 @@ document.getElementById("delete-place-btn").addEventListener("click", () => {
   }
 });
 
-// File upload
+// File upload (only works when Drive is connected)
 document.getElementById("file-input").addEventListener("change", async (e) => {
+  if (!driveConnected) {
+    showToast("Connect Google Drive to upload attachments");
+    return;
+  }
   const place = data.places.find((p) => p.id === selectedPlaceId);
   if (!place) return;
 
@@ -325,7 +385,7 @@ document.getElementById("file-input").addEventListener("change", async (e) => {
         webViewLink: result.webViewLink || "",
       });
       renderAttachments(place);
-      saveToDrive();
+      saveData();
       showToast(`${file.name} uploaded!`);
     } catch (err) {
       console.error("Upload failed:", err);
@@ -334,6 +394,14 @@ document.getElementById("file-input").addEventListener("change", async (e) => {
   }
   e.target.value = "";
 });
+
+// Drive banner — connect button
+const driveBannerBtn = document.getElementById("drive-banner-btn");
+if (driveBannerBtn) {
+  driveBannerBtn.addEventListener("click", () => {
+    chrome.runtime.sendMessage({ type: "OPEN_SETUP" });
+  });
+}
 
 // --- Helpers ---
 function showToast(msg) {
