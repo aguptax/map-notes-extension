@@ -499,10 +499,13 @@ function updateSidebarLevel(level) {
   const placeDetail = document.getElementById("place-detail");
   const searchInput = document.getElementById("search-input");
 
+  const scannerPanel = document.getElementById("scanner-panel");
+
   stateList.classList.toggle("hidden", level !== "states");
   stateHeader.classList.toggle("hidden", level === "states");
   placeList.classList.toggle("hidden", level !== "places");
   placeDetail.classList.toggle("hidden", level !== "detail");
+  scannerPanel.classList.toggle("hidden", level !== "scanner");
 
   // Update search placeholder
   if (level === "states") {
@@ -1587,6 +1590,8 @@ function renderSearchDropdown(query) {
         .join("");
       bindSearchClicks();
       showSearchMarkers(results);
+      // Ensure dropdown stays visible (especially for "Search this area")
+      searchResultsEl.classList.remove("hidden");
     } catch (err) {
       const loadingEl = document.getElementById("geo-loading");
       if (loadingEl) {
@@ -1670,9 +1675,9 @@ searchInput.addEventListener("input", (e) => {
   }
 });
 
-// Close dropdown on outside click
+// Close dropdown on outside click (but not from "Search this area" button)
 document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search-box")) {
+  if (!e.target.closest(".search-box") && !e.target.closest(".search-area-control")) {
     searchResultsEl.classList.add("hidden");
   }
 });

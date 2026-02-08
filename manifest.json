@@ -8,7 +8,8 @@
     "https://www.googleapis.com/*",
     "https://mt1.google.com/*",
     "https://nominatim.openstreetmap.org/*",
-    "https://places.googleapis.com/*"
+    "https://places.googleapis.com/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "oauth2": {
     "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",

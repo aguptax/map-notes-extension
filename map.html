@@ -32,8 +32,111 @@
       <button class="back-btn" id="state-back-btn">&larr; All States</button>
       <h2 id="selected-state-name"></h2>
       <div class="state-place-count" id="state-place-count"></div>
+      <button class="scanner-btn" id="open-scanner-btn">Scan State</button>
     </div>
     <div id="place-list" class="place-list hidden"></div>
+
+    <!-- Level 2-alt: State Scanner Panel -->
+    <div id="scanner-panel" class="scanner-panel hidden">
+      <button class="back-btn" id="scanner-back-btn">&larr; Back to Places</button>
+      <h3 class="scanner-title">State Scanner</h3>
+
+      <div class="scanner-config">
+        <div class="scanner-field">
+          <label for="scanner-query">Search Query</label>
+          <input type="text" id="scanner-query" placeholder='e.g. "solar power plant", "temple"' />
+        </div>
+        <div class="scanner-field">
+          <label for="scanner-grid-size">Grid Resolution</label>
+          <select id="scanner-grid-size">
+            <option value="1.0">Coarse &mdash; 1.0&deg; (~111 km cells, fastest)</option>
+            <option value="0.5" selected>Medium &mdash; 0.5&deg; (~55 km cells)</option>
+            <option value="0.25">Fine &mdash; 0.25&deg; (~28 km cells)</option>
+            <option value="0.15">Very Fine &mdash; 0.15&deg; (~17 km cells)</option>
+            <option value="0.1">Ultra Fine &mdash; 0.1&deg; (~11 km cells, slowest)</option>
+          </select>
+        </div>
+        <div class="scanner-field">
+          <label for="scanner-concurrency">Concurrency</label>
+          <select id="scanner-concurrency">
+            <option value="1">Sequential (1 at a time)</option>
+            <option value="3" selected>Moderate (3 at a time)</option>
+            <option value="5">Fast (5 at a time)</option>
+          </select>
+        </div>
+        <div class="scanner-actions">
+          <button class="btn-scan" id="start-scan-btn">Start Scan</button>
+          <button class="btn-scan-stop hidden" id="stop-scan-btn">Stop</button>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="scanner-progress" class="scanner-progress hidden">
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="scanner-progress-bar"></div>
+        </div>
+        <div class="progress-text" id="scanner-progress-text">0 / 0 cells</div>
+        <div class="progress-stats" id="scanner-progress-stats"></div>
+      </div>
+
+      <!-- Usage Stats -->
+      <div id="scanner-usage" class="scanner-usage">
+        <div class="usage-title">API Usage</div>
+        <div class="usage-grid">
+          <div class="usage-item">
+            <span class="usage-label">Places Search</span>
+            <span class="usage-value" id="usage-places">0</span>
+          </div>
+          <div class="usage-item">
+            <span class="usage-label">Gemini AI</span>
+            <span class="usage-value" id="usage-gemini">0</span>
+          </div>
+          <div class="usage-item">
+            <span class="usage-label">Est. Cost</span>
+            <span class="usage-value" id="usage-cost">$0.00</span>
+          </div>
+          <div class="usage-item">
+            <span class="usage-label">Session</span>
+            <span class="usage-value" id="usage-session-cost">$0.00</span>
+          </div>
+        </div>
+        <button class="usage-reset-btn" id="usage-reset-btn">Reset All-Time</button>
+      </div>
+
+      <!-- Gemini API Key + Model -->
+      <div class="scanner-field gemini-key-field">
+        <label for="gemini-api-key">Gemini API Key</label>
+        <div class="gemini-key-row">
+          <input type="password" id="gemini-api-key" placeholder="Paste your API key..." autocomplete="off" />
+          <button class="gemini-key-toggle" id="gemini-key-toggle" title="Show/hide key">&#128065;</button>
+        </div>
+        <div class="gemini-key-hint">Free from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></div>
+      </div>
+      <div class="scanner-field">
+        <label for="gemini-model">Gemini Model</label>
+        <select id="gemini-model">
+          <option value="gemini-2.0-flash-lite" selected>Gemini 2.0 Flash Lite (free, fast)</option>
+          <option value="gemini-2.0-flash">Gemini 2.0 Flash (free, smarter)</option>
+          <option value="gemini-1.5-flash">Gemini 1.5 Flash (free, legacy)</option>
+        </select>
+      </div>
+
+      <!-- AI Categorization -->
+      <div id="scanner-ai-section" class="scanner-ai-section hidden">
+        <button class="btn-categorize" id="categorize-btn">Categorize with AI</button>
+        <div id="scanner-ai-loading" class="scanner-ai-loading hidden">Analyzing with Gemini...</div>
+        <div id="scanner-ai-summary" class="scanner-ai-summary hidden"></div>
+      </div>
+
+      <!-- Results -->
+      <div id="scanner-results" class="scanner-results hidden">
+        <div class="scanner-results-header">
+          <span id="scanner-results-count"></span>
+          <button class="btn-clear-scan" id="clear-scan-btn">Clear</button>
+        </div>
+        <div id="scanner-categories" class="scanner-categories"></div>
+      </div>
+    </div>
 
     <!-- Level 3: Place Detail Panel -->
     <div id="place-detail" class="place-detail hidden">
@@ -92,5 +195,6 @@
   <script src="js/auth.js"></script>
   <script src="js/drive.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/scraper.js"></script>
 </body>
 </html>
