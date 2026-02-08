@@ -1,0 +1,22 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets - never commit real credentials
+# Ensure manifest.json client_id is a placeholder before committing
+
+# Node (if build tooling is added later)
+node_modules/
+package-lock.json
+
+# Temporary files
+*.log
+*.tmp
+.claude/
