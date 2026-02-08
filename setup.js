@@ -9,9 +9,10 @@ document.getElementById("redirect-uri-copy").textContent = redirectUri;
 chrome.storage.local.get("oauth_client_id").then((stored) => {
   if (stored.oauth_client_id) {
     document.getElementById("client-id-input").value = stored.oauth_client_id;
-    document.getElementById("save-status").textContent = "Previously saved";
-    document.getElementById("save-status").style.display = "inline";
-    document.getElementById("save-status").style.color = "#888";
+    const status = document.getElementById("save-status");
+    status.textContent = "Previously saved";
+    status.className = "status-label muted";
+    status.style.display = "inline";
     document.getElementById("client-id-saved-tip").style.display = "flex";
   }
 });
@@ -19,24 +20,26 @@ chrome.storage.local.get("oauth_client_id").then((stored) => {
 // Save Client ID button
 document.getElementById("save-client-id").addEventListener("click", () => {
   const clientId = document.getElementById("client-id-input").value.trim();
+  const status = document.getElementById("save-status");
+
   if (!clientId) {
-    document.getElementById("save-status").textContent = "Please paste a Client ID first";
-    document.getElementById("save-status").style.display = "inline";
-    document.getElementById("save-status").style.color = "#e94560";
+    status.textContent = "Please paste a Client ID first";
+    status.className = "status-label error";
+    status.style.display = "inline";
     return;
   }
   if (!clientId.endsWith(".apps.googleusercontent.com")) {
-    document.getElementById("save-status").textContent = "Client ID should end with .apps.googleusercontent.com";
-    document.getElementById("save-status").style.display = "inline";
-    document.getElementById("save-status").style.color = "#e94560";
+    status.textContent = "Client ID should end with .apps.googleusercontent.com";
+    status.className = "status-label error";
+    status.style.display = "inline";
     return;
   }
   chrome.storage.local.set({ oauth_client_id: clientId }).then(() => {
-    document.getElementById("save-status").textContent = "Saved!";
-    document.getElementById("save-status").style.display = "inline";
-    document.getElementById("save-status").style.color = "#53d769";
+    status.textContent = "Saved!";
+    status.className = "status-label success";
+    status.style.display = "inline";
     document.getElementById("client-id-saved-tip").style.display = "flex";
-    document.getElementById("client-id-input").style.borderColor = "#53d769";
+    document.getElementById("client-id-input").style.borderColor = "#34a853";
   });
 });
 
@@ -63,8 +66,9 @@ document.getElementById("test-btn").addEventListener("click", async () => {
   const stored = await chrome.storage.local.get("oauth_client_id");
   if (!stored.oauth_client_id) {
     resultEl.style.display = "block";
-    resultEl.innerHTML = `<div style="background:#1a1a2e; border-left:3px solid #e94560; border-radius:4px; padding:10px 14px; font-size:13px; color:#e94560;">
-      Save your Client ID in Step 6 first.
+    resultEl.innerHTML = `<div class="result-error">
+      <div class="title">Client ID missing</div>
+      <div class="detail">Save your Client ID in Step 6 first.</div>
     </div>`;
     return;
   }
@@ -95,11 +99,11 @@ document.getElementById("test-btn").addEventListener("click", async () => {
 
     // Success
     resultEl.style.display = "block";
-    resultEl.innerHTML = `<div style="background:#1a1a2e; border:1px solid #53d769; border-radius:8px; padding:16px; display:flex; align-items:center; gap:14px;">
-      <img src="${user.picture || ""}" style="width:44px; height:44px; border-radius:50%;" />
+    resultEl.innerHTML = `<div class="result-success">
+      <img src="${user.picture || ""}" alt="" />
       <div>
-        <div style="color:#53d769; font-weight:600; font-size:14px; margin-bottom:2px;">Connection successful!</div>
-        <div style="color:#ccc; font-size:13px;">Signed in as <strong>${user.name || "User"}</strong> (${user.email || ""})</div>
+        <div class="title">Connection successful!</div>
+        <div class="detail">Signed in as <strong>${user.name || "User"}</strong> (${user.email || ""})</div>
       </div>
     </div>`;
   } catch (err) {
@@ -107,7 +111,7 @@ document.getElementById("test-btn").addEventListener("click", async () => {
     let hint = "";
     const msg = err.message || "";
     if (msg.includes("invalid_client")) {
-      hint = "Check that your Client ID is correct.";
+      hint = "Check that your Client ID is correct and the OAuth client type is \"Web application\".";
     } else if (msg.includes("redirect_uri_mismatch")) {
       hint = "The Redirect URI in Google Cloud Console doesn't match. Copy it from Step 1 and update it in Step 5.";
     } else if (msg.includes("canceled") || msg.includes("user denied")) {
@@ -117,9 +121,9 @@ document.getElementById("test-btn").addEventListener("click", async () => {
     } else {
       hint = msg;
     }
-    resultEl.innerHTML = `<div style="background:#1a1a2e; border:1px solid #e94560; border-radius:8px; padding:14px;">
-      <div style="color:#e94560; font-weight:600; font-size:14px; margin-bottom:6px;">Connection failed</div>
-      <div style="color:#ccc; font-size:13px;">${hint}</div>
+    resultEl.innerHTML = `<div class="result-error">
+      <div class="title">Connection failed</div>
+      <div class="detail">${hint}</div>
     </div>`;
   } finally {
     testBtn.disabled = false;

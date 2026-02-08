@@ -3,197 +3,444 @@
 <head>
   <meta charset="utf-8" />
   <title>MapNotes — Setup Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
+      font-family: 'Roboto', 'Segoe UI', system-ui, sans-serif;
+      background: #f8f9fa;
+      color: #202124;
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      padding: 40px 20px;
+      padding: 40px 20px 60px;
     }
     .container {
-      max-width: 680px;
+      max-width: 720px;
       width: 100%;
     }
-    .logo {
+
+    /* Header */
+    .header {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 36px;
     }
-    .logo h1 {
-      font-size: 28px;
-      color: #e94560;
-      margin-bottom: 4px;
+    .header-icon {
+      width: 56px;
+      height: 56px;
+      background: #ea4335;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
     }
-    .logo p {
-      color: #888;
+    .header-icon svg {
+      width: 28px;
+      height: 28px;
+      fill: white;
+    }
+    .header h1 {
+      font-family: 'Google Sans', 'Segoe UI', sans-serif;
+      font-size: 24px;
+      font-weight: 400;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #5f6368;
       font-size: 14px;
+      line-height: 1.5;
     }
-    .browser-badge {
-      display: inline-block;
-      background: #0f3460;
-      border-radius: 20px;
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e8f0fe;
+      border-radius: 100px;
       padding: 6px 16px;
       font-size: 12px;
-      color: #06b6d4;
-      margin-top: 10px;
+      font-weight: 500;
+      color: #1a73e8;
+      margin-top: 12px;
     }
+    .badge svg {
+      width: 14px;
+      height: 14px;
+      fill: #1a73e8;
+    }
+
+    /* Progress stepper */
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 32px;
+    }
+    .stepper-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e8eaed;
+      color: #5f6368;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .stepper-line {
+      width: 32px;
+      height: 2px;
+      background: #e8eaed;
+      flex-shrink: 0;
+    }
+
+    /* Cards */
     .card {
-      background: #16213e;
+      background: white;
       border-radius: 12px;
+      border: 1px solid #e8eaed;
       padding: 24px;
       margin-bottom: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .card:hover {
+      box-shadow: 0 1px 6px rgba(32, 33, 36, 0.1);
     }
     .step-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 14px;
+      margin-bottom: 16px;
     }
     .step-num {
       width: 32px;
       height: 32px;
-      background: #e94560;
+      background: #1a73e8;
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
+      font-weight: 500;
       font-size: 14px;
       flex-shrink: 0;
+      font-family: 'Google Sans', sans-serif;
     }
     .step-header h2 {
+      font-family: 'Google Sans', 'Segoe UI', sans-serif;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 500;
+      color: #202124;
     }
     .card p, .card li {
       font-size: 14px;
-      line-height: 1.7;
-      color: #ccc;
+      line-height: 1.75;
+      color: #5f6368;
     }
     .card ol, .card ul {
       padding-left: 20px;
       margin-top: 8px;
     }
     .card li {
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
+    .card li strong {
+      color: #202124;
+    }
+
+    /* Links */
     a {
-      color: #06b6d4;
+      color: #1a73e8;
       text-decoration: none;
+      font-weight: 500;
     }
     a:hover {
       text-decoration: underline;
     }
+
+    /* Info box (Extension ID, Redirect URI) */
     .info-box {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #1a1a2e;
-      border: 1px solid #0f3460;
+      background: #f8f9fa;
+      border: 1px solid #e8eaed;
       border-radius: 8px;
       padding: 12px 16px;
       margin-top: 12px;
-      font-family: 'Consolas', 'Courier New', monospace;
+      font-family: 'Roboto Mono', 'Consolas', monospace;
       font-size: 13px;
-      color: #ffbd2e;
+      color: #202124;
       word-break: break-all;
     }
     .info-box .label {
-      color: #888;
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #5f6368;
+      font-family: 'Roboto', sans-serif;
       white-space: nowrap;
-    }
-    .copy-btn {
-      background: #0f3460;
-      border: none;
-      color: #06b6d4;
-      padding: 4px 10px;
-      border-radius: 4px;
       font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Copy button */
+    .copy-btn {
+      background: #e8f0fe;
+      border: none;
+      color: #1a73e8;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
       white-space: nowrap;
       flex-shrink: 0;
+      transition: background 0.15s;
     }
     .copy-btn:hover {
-      background: #e94560;
-      color: white;
+      background: #d2e3fc;
     }
+
+    /* Code */
     code {
-      background: #1a1a2e;
+      background: #f1f3f4;
       padding: 2px 8px;
       border-radius: 4px;
       font-size: 13px;
-      color: #ffbd2e;
+      color: #202124;
+      font-family: 'Roboto Mono', 'Consolas', monospace;
     }
+
+    /* Highlight box */
     .highlight {
-      background: #0f3460;
-      border: 1px solid #e94560;
-      border-radius: 8px;
+      background: #fef7e0;
+      border-left: 4px solid #fbbc04;
+      border-radius: 0 8px 8px 0;
       padding: 14px 18px;
-      margin-top: 12px;
+      margin-top: 14px;
       font-size: 13px;
       line-height: 1.6;
+      color: #5f6368;
     }
     .highlight strong {
-      color: #e94560;
+      color: #202124;
     }
-    .done-section {
-      text-align: center;
-      padding: 32px 24px;
-    }
-    .done-section h2 {
-      font-size: 18px;
-      color: #53d769;
-      margin-bottom: 8px;
-    }
-    .done-section p {
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 32px;
-      background: #e94560;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .btn:hover {
-      opacity: 0.85;
-      text-decoration: none;
-    }
+
+    /* Tip */
     .tip {
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      background: #1a1a2e;
-      border-left: 3px solid #ffbd2e;
-      border-radius: 4px;
-      padding: 10px 14px;
-      margin-top: 12px;
+      background: #e8f0fe;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 14px;
       font-size: 13px;
-      color: #aaa;
+      color: #5f6368;
+      line-height: 1.5;
     }
     .tip strong {
-      color: #ffbd2e;
+      color: #1a73e8;
+      white-space: nowrap;
+    }
+
+    /* Input */
+    .input-field {
+      width: 100%;
+      padding: 14px 16px;
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      color: #202124;
+      font-family: 'Roboto Mono', 'Consolas', monospace;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .input-field:focus {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+    }
+    .input-field::placeholder {
+      color: #9aa0a6;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 24px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Google Sans', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background: #1765cc;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .btn-secondary {
+      background: white;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    .btn-secondary:hover {
+      background: #f8f9fa;
+      border-color: #d2e3fc;
+    }
+    .btn-success {
+      background: #34a853;
+    }
+    .btn-success:hover {
+      background: #2d9249;
+    }
+
+    /* Status label */
+    .status-label {
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+    }
+    .status-label.success { color: #34a853; }
+    .status-label.error { color: #ea4335; }
+    .status-label.muted { color: #9aa0a6; }
+
+    /* Done section */
+    .done-section {
+      text-align: center;
+      padding: 40px 24px;
+    }
+    .done-section .done-icon {
+      width: 48px;
+      height: 48px;
+      background: #e6f4ea;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .done-section .done-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #34a853;
+    }
+    .done-section h2 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+    .done-section p {
+      color: #5f6368;
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Saved tip (green) */
+    .tip-success {
+      display: none;
+      align-items: flex-start;
+      gap: 8px;
+      background: #e6f4ea;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 14px;
+      font-size: 13px;
+      color: #5f6368;
+    }
+    .tip-success strong {
+      color: #34a853;
+    }
+
+    /* Test result containers */
+    .result-success {
+      background: #e6f4ea;
+      border: 1px solid #ceead6;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .result-success img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+    }
+    .result-success .title {
+      color: #34a853;
+      font-weight: 500;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    .result-success .detail {
+      color: #5f6368;
+      font-size: 13px;
+    }
+    .result-error {
+      background: #fce8e6;
+      border: 1px solid #f5c6cb;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .result-error .title {
+      color: #ea4335;
+      font-weight: 500;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .result-error .detail {
+      color: #5f6368;
+      font-size: 13px;
+    }
+
+    /* Spinner */
+    .spinner-text {
+      display: none;
+      font-size: 13px;
+      color: #5f6368;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="logo">
-      <h1>MapNotes — Setup Guide</h1>
-      <p>Follow these steps to connect Google Drive and start using MapNotes</p>
-      <div class="browser-badge" id="browser-badge">Works on Chrome &amp; Edge</div>
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <h1>Set up Google Drive for MapNotes</h1>
+      <p>Connect your Google Drive to sync places across devices and upload attachments</p>
+      <div class="badge">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        Works on Chrome &amp; Edge
+      </div>
+    </div>
+
+    <!-- Progress stepper -->
+    <div class="stepper">
+      <span class="stepper-dot">1</span><span class="stepper-line"></span>
+      <span class="stepper-dot">2</span><span class="stepper-line"></span>
+      <span class="stepper-dot">3</span><span class="stepper-line"></span>
+      <span class="stepper-dot">4</span><span class="stepper-line"></span>
+      <span class="stepper-dot">5</span><span class="stepper-line"></span>
+      <span class="stepper-dot">6</span><span class="stepper-line"></span>
+      <span class="stepper-dot">7</span>
     </div>
 
     <!-- Step 1 -->
@@ -204,13 +451,13 @@
       </div>
       <p>These values are auto-detected. You'll need them in later steps.</p>
       <div class="info-box">
-        <span class="label">Extension ID:</span>
-        <span id="ext-id">Loading...</span>
+        <span class="label">Extension ID</span>
+        <span id="ext-id" style="flex:1;">Loading...</span>
         <button class="copy-btn" data-copy="ext-id">Copy</button>
       </div>
       <div class="info-box">
-        <span class="label">Redirect URI:</span>
-        <span id="redirect-uri">Loading...</span>
+        <span class="label">Redirect URI</span>
+        <span id="redirect-uri" style="flex:1;">Loading...</span>
         <button class="copy-btn" data-copy="redirect-uri">Copy</button>
       </div>
       <div class="tip">
@@ -253,7 +500,7 @@
       </div>
       <ol>
         <li>Go to <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank">OAuth Consent Screen</a></li>
-        <li>Select <strong>External</strong> → click <strong>Create</strong></li>
+        <li>Select <strong>External</strong> then click <strong>Create</strong></li>
         <li>Fill in:
           <ul style="margin-top:4px; padding-left:18px;">
             <li><strong>App name:</strong> <code>MapNotes</code></li>
@@ -276,12 +523,12 @@
       </div>
       <ol>
         <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Credentials page</a></li>
-        <li>Click <strong>+ Create Credentials</strong> → <strong>OAuth Client ID</strong></li>
+        <li>Click <strong>+ Create Credentials</strong> then <strong>OAuth Client ID</strong></li>
         <li>Application type: <strong>Web application</strong></li>
         <li>Name: <code>MapNotes</code></li>
-        <li>Under <strong>Authorized redirect URIs</strong>, click <strong>+ Add URI</strong> and paste your Redirect URI from Step 1:
+        <li>Under <strong>Authorized redirect URIs</strong>, click <strong>+ Add URI</strong> and paste:
           <div class="info-box" style="margin-top:8px; margin-bottom:4px;">
-            <span id="redirect-uri-copy">Loading...</span>
+            <span id="redirect-uri-copy" style="flex:1;">Loading...</span>
             <button class="copy-btn" data-copy="redirect-uri-copy">Copy</button>
           </div>
         </li>
@@ -299,19 +546,15 @@
         <h2>Add Client ID to MapNotes</h2>
       </div>
       <p>Paste the Client ID you copied from Step 5 below and click Save.</p>
-      <div style="margin-top:12px;">
-        <input type="text" id="client-id-input" placeholder="Paste your Client ID here..." style="
-          width:100%; padding:12px 16px; background:#1a1a2e; border:1px solid #0f3460;
-          border-radius:8px; color:#ffbd2e; font-family:'Consolas','Courier New',monospace;
-          font-size:13px; outline:none;
-        " />
+      <div style="margin-top:14px;">
+        <input type="text" id="client-id-input" class="input-field" placeholder="Paste your Client ID here..." />
       </div>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
-        <button class="btn" id="save-client-id" style="padding:10px 24px;">Save Client ID</button>
-        <span id="save-status" style="font-size:13px; color:#53d769; display:none;"></span>
+      <div style="display:flex; align-items:center; gap:14px; margin-top:14px;">
+        <button class="btn" id="save-client-id">Save Client ID</button>
+        <span id="save-status" class="status-label"></span>
       </div>
-      <div class="tip" id="client-id-saved-tip" style="display:none; border-left-color:#53d769;">
-        <strong style="color:#53d769;">Saved!</strong>&nbsp;Your Client ID is stored. You can now close this page and sign in from the MapNotes popup.
+      <div class="tip-success" id="client-id-saved-tip">
+        <strong>Saved!</strong>&nbsp;Your Client ID is stored. You can now test the connection below.
       </div>
     </div>
 
@@ -322,17 +565,20 @@
         <h2>Test Connection</h2>
       </div>
       <p>Verify everything works by signing in with your Google account.</p>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:14px;">
-        <button class="btn" id="test-btn" style="padding:10px 24px;">Test Sign In</button>
-        <span id="test-spinner" style="display:none; font-size:13px; color:#888;">Connecting...</span>
+      <div style="display:flex; align-items:center; gap:14px; margin-top:16px;">
+        <button class="btn btn-success" id="test-btn">Test Sign In</button>
+        <span id="test-spinner" class="spinner-text">Connecting...</span>
       </div>
-      <div id="test-result" style="margin-top:14px; display:none;"></div>
+      <div id="test-result" style="margin-top:16px; display:none;"></div>
     </div>
 
     <!-- Done -->
     <div class="card done-section">
-      <h2 id="done-title">All Done!</h2>
-      <p id="done-text">After saving your Client ID and testing, click the MapNotes icon in your toolbar and start marking places on the map.</p>
+      <div class="done-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <h2>You're all set!</h2>
+      <p>Click the MapNotes icon in your toolbar to open the map and start marking places.</p>
       <button class="btn" id="close-btn">Close Setup Guide</button>
     </div>
   </div>
