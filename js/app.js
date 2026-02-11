@@ -2,6 +2,8 @@
 
 let map;
 let markers = {};
+let clusterMarkers = [];
+const CLUSTER_RADIUS_PX = 40;
 let data = { version: 2, selectedState: null, places: [] };
 let selectedStateId = null;
 let selectedPlaceId = null;
@@ -162,6 +164,7 @@ async function initMap() {
 
   // Highlighted state layer (initially empty)
   highlightedStateLayer = L.geoJSON(null, {
+    interactive: false,
     style: {
       color: "#1a73e8",
       weight: 2.5,
@@ -240,6 +243,7 @@ async function initMap() {
       fillOpacity: fillOpacity,
       weight: weight,
     });
+    updateClusters();
   });
 
   // Show "Search this area" button when user pans/zooms with active search
@@ -575,6 +579,7 @@ function addNewPlace(lat, lng, stateId, title, address) {
   data.places.push(place);
   renderPlaceList();
   addMarker(place);
+  updateClusters();
   openPlaceDetail(place.id);
   saveData();
 }
@@ -596,6 +601,7 @@ function deletePlace(id) {
     map.removeLayer(markers[id]);
     delete markers[id];
   }
+  updateClusters();
 
   closePlaceDetail();
   renderPlaceList();
@@ -644,9 +650,9 @@ function addMarker(place) {
         `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
     }
     saveData();
+    updateClusters();
   });
 
-  marker.addTo(map);
   markers[place.id] = marker;
 }
 
@@ -657,11 +663,146 @@ function renderAllMarkers() {
   data.places
     .filter((p) => p.stateId === selectedStateId)
     .forEach((place) => addMarker(place));
+  updateClusters();
 }
 
 function clearAllMarkers() {
   Object.values(markers).forEach((m) => map.removeLayer(m));
   markers = {};
+  for (const cm of clusterMarkers) map.removeLayer(cm);
+  clusterMarkers = [];
+}
+
+// --- Color-Based Marker Clustering ---
+
+function createClusterIcon(color, count) {
+  return L.divIcon({
+    className: "cluster-marker",
+    html: `<div style="
+      background: ${color};
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: Roboto, sans-serif;
+      cursor: pointer;
+    ">${count}</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+}
+
+function computeClusters() {
+  const entries = [];
+  for (const [placeId, marker] of Object.entries(markers)) {
+    const place = data.places.find((p) => p.id === placeId);
+    if (!place) continue;
+    const latlng = marker.getLatLng();
+    const px = map.latLngToContainerPoint(latlng);
+    entries.push({ placeId, color: place.color, px: px.x, py: px.y, latlng });
+  }
+
+  // Group by color
+  const byColor = {};
+  for (const e of entries) {
+    if (!byColor[e.color]) byColor[e.color] = [];
+    byColor[e.color].push(e);
+  }
+
+  const clusters = [];
+  const singles = [];
+
+  for (const [color, group] of Object.entries(byColor)) {
+    const used = new Set();
+    for (let i = 0; i < group.length; i++) {
+      if (used.has(i)) continue;
+      // BFS: find all connected markers within radius
+      const queue = [i];
+      const connected = [];
+      used.add(i);
+      while (queue.length > 0) {
+        const cur = queue.shift();
+        connected.push(cur);
+        for (let j = 0; j < group.length; j++) {
+          if (used.has(j)) continue;
+          const dx = group[cur].px - group[j].px;
+          const dy = group[cur].py - group[j].py;
+          if (Math.sqrt(dx * dx + dy * dy) <= CLUSTER_RADIUS_PX) {
+            used.add(j);
+            queue.push(j);
+          }
+        }
+      }
+      if (connected.length >= 2) {
+        let latSum = 0, lngSum = 0;
+        const placeIds = [];
+        for (const idx of connected) {
+          latSum += group[idx].latlng.lat;
+          lngSum += group[idx].latlng.lng;
+          placeIds.push(group[idx].placeId);
+        }
+        clusters.push({
+          color,
+          placeIds,
+          centroidLatLng: L.latLng(latSum / connected.length, lngSum / connected.length),
+          count: connected.length,
+        });
+      } else {
+        singles.push(group[connected[0]].placeId);
+      }
+    }
+  }
+  return { clusters, singles };
+}
+
+function updateClusters() {
+  // Remove old cluster markers
+  for (const cm of clusterMarkers) map.removeLayer(cm);
+  clusterMarkers = [];
+
+  if (Object.keys(markers).length === 0) return;
+
+  const { clusters, singles } = computeClusters();
+
+  const clusteredIds = new Set();
+  for (const c of clusters) {
+    for (const pid of c.placeIds) clusteredIds.add(pid);
+  }
+
+  // Show/hide individual markers
+  for (const [placeId, marker] of Object.entries(markers)) {
+    if (clusteredIds.has(placeId)) {
+      if (map.hasLayer(marker)) map.removeLayer(marker);
+    } else {
+      if (!map.hasLayer(marker)) marker.addTo(map);
+    }
+  }
+
+  // Create cluster markers
+  for (const cluster of clusters) {
+    const cm = L.marker(cluster.centroidLatLng, {
+      icon: createClusterIcon(cluster.color, cluster.count),
+      interactive: true,
+    });
+    cm.bindTooltip(`${cluster.count} places`, { direction: "top", offset: [0, -18] });
+    cm.on("click", (e) => {
+      L.DomEvent.stopPropagation(e);
+      const latlngs = cluster.placeIds
+        .map((pid) => markers[pid]?.getLatLng())
+        .filter(Boolean);
+      if (latlngs.length > 0) {
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 18 });
+      }
+    });
+    cm.addTo(map);
+    clusterMarkers.push(cm);
+  }
 }
 
 // --- Search Markers (temporary, shown on map during search) ---
@@ -1720,6 +1861,7 @@ document.getElementById("save-place-btn").addEventListener("click", () => {
   if (selectedColor) place.color = selectedColor.dataset.color;
 
   addMarker(place);
+  updateClusters();
   renderPlaceList();
   saveData();
   showToast("Place saved!");

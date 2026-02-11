@@ -565,6 +565,11 @@ textarea:focus {
   border: none !important;
 }
 
+.cluster-marker {
+  background: none !important;
+  border: none !important;
+}
+
 /* Leaflet layer control — light theme */
 .leaflet-control-layers {
   background: #ffffff !important;
