@@ -752,6 +752,41 @@ textarea:focus {
   background: #d2e3fc;
 }
 
+.scanner-btn.active {
+  background: #1a73e8;
+  color: white;
+  border-color: #1a73e8;
+}
+
+.state-header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.state-header-actions .scanner-btn {
+  margin-top: 0;
+}
+
+.clear-areas-btn {
+  font-size: 11px;
+  color: #80868b;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px;
+}
+
+.clear-areas-btn:hover {
+  color: #d93025;
+}
+
+#map.review-cursor {
+  cursor: crosshair;
+}
+
 .scanner-panel {
   flex: 1;
   overflow-y: auto;

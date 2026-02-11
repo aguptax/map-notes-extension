@@ -20,6 +20,12 @@ let searchResults = [];
 // Current sidebar level: 'states' | 'places' | 'detail'
 let sidebarLevel = "states";
 
+// Review mode state (draw rectangles to mark reviewed areas)
+let reviewMode = false;
+let reviewDragStart = null;
+let reviewPreviewRect = null;
+let reviewRectLayers = {};
+
 // Measure tool state
 let measureMode = false;
 let measurePoints = [];
@@ -90,6 +96,7 @@ async function init() {
 
   // Migrate data to v2 (adds stateId to places)
   data = migrateData(data);
+  if (!data.reviewedAreas) data.reviewedAreas = [];
   await saveLocal(data);
 
   // Render initial UI
@@ -295,8 +302,52 @@ async function initMap() {
     updateMeasureInfo(e.latlng);
   });
 
+  // Review mode: draw rectangles to mark reviewed areas
+  map.on("mousedown", (e) => {
+    if (!reviewMode || e.originalEvent.button !== 0) return;
+    reviewDragStart = e.latlng;
+    map.dragging.disable();
+  });
+
+  map.on("mousemove", (e) => {
+    if (!reviewMode || !reviewDragStart) return;
+    const bounds = L.latLngBounds(reviewDragStart, e.latlng);
+    if (reviewPreviewRect) {
+      reviewPreviewRect.setBounds(bounds);
+    } else {
+      reviewPreviewRect = L.rectangle(bounds, {
+        color: "#34a853",
+        weight: 2,
+        dashArray: "6 4",
+        fillColor: "#34a853",
+        fillOpacity: 0.12,
+        interactive: false,
+      }).addTo(map);
+    }
+  });
+
+  map.on("mouseup", (e) => {
+    if (!reviewMode || !reviewDragStart) return;
+    const bounds = L.latLngBounds(reviewDragStart, e.latlng);
+    // Only save if the rectangle has meaningful size (not just a click)
+    const size = map.latLngToContainerPoint(bounds.getNorthEast())
+      .distanceTo(map.latLngToContainerPoint(bounds.getSouthWest()));
+    if (size > 10) {
+      addReviewedArea(bounds);
+    }
+    // Clean up preview
+    if (reviewPreviewRect) {
+      map.removeLayer(reviewPreviewRect);
+      reviewPreviewRect = null;
+    }
+    reviewDragStart = null;
+    map.dragging.enable();
+  });
+
   // Map click handler
   map.on("click", (e) => {
+    // Review mode intercepts clicks (handled via mousedown/up)
+    if (reviewMode) return;
     // Measure mode intercepts all map clicks
     if (measureMode) {
       addMeasurePoint(e.latlng);
@@ -469,6 +520,7 @@ function selectState(stateId) {
   updateSidebarLevel("places");
   renderPlaceList();
   renderAllMarkers();
+  renderReviewedAreas();
 
   // Save selected state
   saveData();
@@ -479,10 +531,14 @@ function deselectState() {
   selectedPlaceId = null;
   data.selectedState = null;
 
+  // Exit review mode if active
+  if (reviewMode) toggleReviewMode();
+
   // Clear map highlight and markers
   highlightedStateLayer.clearLayers();
   clearAllMarkers();
   clearSearchMarkers();
+  clearReviewedAreas();
 
   // Reset zoom to India
   map.flyTo([22.5, 82.5], 5);
@@ -545,11 +601,20 @@ async function saveData() {
   try {
     await saveLocal(data);
     if (driveConnected) {
-      await Drive.saveData(data);
+      try {
+        await Drive.saveData(data);
+      } catch (driveErr) {
+        console.error("Drive sync failed:", driveErr);
+        if (driveErr.message && driveErr.message.includes("Not authenticated")) {
+          driveConnected = false;
+          updateDriveBanner();
+          showToast("Drive disconnected — sign in again to sync");
+        }
+      }
     }
   } catch (err) {
-    console.error("Failed to save:", err);
-    showToast("Save failed — check connection");
+    console.error("Failed to save locally:", err);
+    showToast("Save failed — check storage");
   }
   saving = false;
   if (pendingSave) {
@@ -802,6 +867,95 @@ function updateClusters() {
     });
     cm.addTo(map);
     clusterMarkers.push(cm);
+  }
+}
+
+// --- Reviewed Areas (draw rectangles to mark reviewed map sections) ---
+
+function toggleReviewMode() {
+  reviewMode = !reviewMode;
+  const btn = document.getElementById("mark-area-btn");
+  const mapEl = document.getElementById("map");
+  btn.classList.toggle("active", reviewMode);
+  mapEl.classList.toggle("review-cursor", reviewMode);
+
+  if (!reviewMode) {
+    // Clean up any in-progress drawing
+    if (reviewPreviewRect) {
+      map.removeLayer(reviewPreviewRect);
+      reviewPreviewRect = null;
+    }
+    reviewDragStart = null;
+    map.dragging.enable();
+  }
+}
+
+function renderReviewedAreas() {
+  clearReviewedAreas();
+  if (!selectedStateId || !data.reviewedAreas) return;
+
+  data.reviewedAreas
+    .filter((a) => a.stateId === selectedStateId)
+    .forEach((area) => {
+      const bounds = L.latLngBounds(
+        [area.bounds.south, area.bounds.west],
+        [area.bounds.north, area.bounds.east]
+      );
+      const rect = L.rectangle(bounds, {
+        color: "#34a853",
+        weight: 2,
+        dashArray: "6 4",
+        fillColor: "#34a853",
+        fillOpacity: 0.12,
+        interactive: false,
+      }).addTo(map);
+      reviewRectLayers[area.id] = rect;
+    });
+}
+
+function clearReviewedAreas() {
+  Object.values(reviewRectLayers).forEach((r) => map.removeLayer(r));
+  reviewRectLayers = {};
+}
+
+function addReviewedArea(bounds) {
+  if (!data.reviewedAreas) data.reviewedAreas = [];
+  const area = {
+    id: generateId(),
+    stateId: selectedStateId,
+    bounds: {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest(),
+    },
+    markedAt: new Date().toISOString(),
+  };
+  data.reviewedAreas.push(area);
+  saveData();
+
+  // Render just this new rectangle
+  const rect = L.rectangle(bounds, {
+    color: "#34a853",
+    weight: 2,
+    dashArray: "6 4",
+    fillColor: "#34a853",
+    fillOpacity: 0.12,
+    interactive: false,
+  }).addTo(map);
+  reviewRectLayers[area.id] = rect;
+}
+
+function clearAllReviewedAreasForState() {
+  if (!data.reviewedAreas || !selectedStateId) return;
+  const countBefore = data.reviewedAreas.length;
+  data.reviewedAreas = data.reviewedAreas.filter(
+    (a) => a.stateId !== selectedStateId
+  );
+  clearReviewedAreas();
+  if (data.reviewedAreas.length < countBefore) {
+    saveData();
+    showToast("Marked areas cleared");
   }
 }
 
@@ -1788,10 +1942,23 @@ function bindSearchClicks() {
 
 // --- Event Listeners ---
 
-// Escape key exits measure mode
+// Escape key exits measure mode or review mode
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && measureMode) {
-    toggleMeasureMode();
+  if (e.key === "Escape") {
+    if (reviewMode) toggleReviewMode();
+    if (measureMode) toggleMeasureMode();
+  }
+});
+
+// Review mode toggle and clear buttons
+document.getElementById("mark-area-btn").addEventListener("click", () => {
+  if (!selectedStateId) return;
+  toggleReviewMode();
+});
+document.getElementById("clear-areas-btn").addEventListener("click", () => {
+  if (!selectedStateId) return;
+  if (confirm("Clear all marked areas for this state?")) {
+    clearAllReviewedAreasForState();
   }
 });
 

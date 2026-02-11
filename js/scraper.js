@@ -147,6 +147,21 @@ const CATEGORY_COLORS = [
   "#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6",
 ];
 
+function addScannerMarkerLive(place, index) {
+  initScannerMarkersLayer();
+  const color = "#3b82f6"; // default blue until categorized
+  const marker = L.circleMarker([place.lat, place.lng], {
+    radius: 7,
+    color: color,
+    fillColor: color,
+    fillOpacity: 0.6,
+    weight: 2,
+  });
+  marker.bindTooltip(place.name, { direction: "top", offset: [0, -8] });
+  marker.bindPopup(buildScannerPopupHtml(place, index), { maxWidth: 280 });
+  scannerMarkersLayer.addLayer(marker);
+}
+
 function renderScannerMarkers(results, categories) {
   clearScannerMarkers();
   initScannerMarkersLayer();
@@ -308,7 +323,7 @@ const Scraper = {
           textQuery: query,
           languageCode: "en",
           maxResultCount: 20,
-          locationRestriction: {
+          locationBias: {
             rectangle: {
               low: { latitude: cell.south, longitude: cell.west },
               high: { latitude: cell.north, longitude: cell.east },
@@ -361,6 +376,7 @@ const Scraper = {
 
     if (place.placeId) this.seenPlaceIds.add(place.placeId);
     this.results.push(place);
+    addScannerMarkerLive(place, this.results.length - 1);
     return true;
   },
 
